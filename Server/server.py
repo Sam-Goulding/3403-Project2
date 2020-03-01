@@ -10,7 +10,6 @@
     Put your team members' names:
     Sam Goulding
     Alex Palo
-    Griffen Cook
 
 
 

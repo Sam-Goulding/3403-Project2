@@ -10,8 +10,6 @@
     Put your team members' names:
     Sam Goulding
     Alex Palo
-    Griffen Cook
-
 
 
 """
@@ -19,18 +17,19 @@
 import socket
 import os
 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
+
 
 host = "localhost"
 port = 10001
 
 
 # A helper function that you may find useful for AES encryption
-# Is this the best way to pad a message?!?!
 def pad_message(message):
     return message + " "*((16-len(message))%16)
 
 
-# TODO: Generate a cryptographically random AES key
 def generate_key():
     AES_key = os.urandom(16)
     return AES_key
@@ -39,14 +38,26 @@ def generate_key():
 # Takes an AES session key and encrypts it using the appropriate
 # key and return the value
 def encrypt_handshake(session_key):
-    # TODO: Implement this function
-    pass
+    #Get public key from directory file
+    public_key = RSA.import_key(open("public_key.pem").read())
+    #create cipher using public key
+    cipher = PKCS1_OAEP.new(public_key)
+    #encrypt session key with cipher
+    session_key_encrypted = cipher.encrypt(session_key)
+    #return
+    return session_key_encrypted
+    
+    
 
 
 # Encrypts the message using AES. Same as server function
 def encrypt_message(message, session_key):
-    # TODO: Implement this function
-    pass
+    #create cipher using session key - AES.MODE_EAX allows receiver to detect
+    #unauthorized modification
+    cipher = AES.new(session_key, AES.MODE_EAX)
+    #encrypt message using cipher
+    message_encrypted, tag = 
+    
 
 
 # Decrypts the message using AES. Same as server function
