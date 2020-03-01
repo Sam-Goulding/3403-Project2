@@ -52,18 +52,23 @@ def encrypt_handshake(session_key):
 
 # Encrypts the message using AES. Same as server function
 def encrypt_message(message, session_key):
-    #create cipher using session key - AES.MODE_EAX allows receiver to detect
-    #unauthorized modification
-    cipher = AES.new(session_key, AES.MODE_EAX)
+    #create cipher using session key
+    cipher = AES.new(session_key)
     #encrypt message using cipher
-    message_encrypted, tag = 
+    message_encrypted = cipher.encrypt(message)
+    #return
+    return message_encrypted
     
 
 
 # Decrypts the message using AES. Same as server function
 def decrypt_message(message, session_key):
-    # TODO: Implement this function
-    pass
+    #create cipher using session_key
+    cipher = AES.new(session_key, AES.MODE_EAX,nonce)
+    decrypted_message = cipher.decrypt_and_verify(message,tag)
+    #return
+    return decrypted_message
+
 
 
 # Sends a message over TCP
@@ -102,14 +107,18 @@ def main():
         # Initiate handshake
         send_message(sock, encrypted_key)
 
-        # Listen for okay from server (why is this necessary?)
+        # Listen for okay from server
         if receive_message(sock).decode() != "okay":
             print("Couldn't connect to server")
             exit(0)
 
         # TODO: Encrypt message and send to server
+        encrypted_message = encrypt_message(message,key)
+        send_message(sock,encrypted_message)
 
         # TODO: Receive and decrypt response from server
+        
+        
     finally:
         print('closing socket')
         sock.close()
