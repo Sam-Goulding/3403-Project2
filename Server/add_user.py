@@ -9,12 +9,14 @@
 import hashlib, uuid
 
 
-user = raw_input("Enter a username: ")
-password = raw_input("Enter a password: ")
+user = input("Enter a username: ")
+password = input("Enter a password: ")
+
+# password.encode('utf-8')
 
 # TODO: Create a salt and hash the password
 salt = uuid.uuid4().hex
-hashed_password = hashlib.sha512(password + salt).hexdigest()
+hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
 
 try:
     reading = open("passfile.txt", 'r')
