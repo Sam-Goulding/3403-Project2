@@ -34,14 +34,21 @@ def decrypt_key(session_key):
 
 # Write a function that decrypts a message using the session key
 def decrypt_message(client_message, session_key):
-    # TODO: Implement this function
-    pass
+    #create cipher using session_key
+    cipher = AES.new(session_key, AES.MODE_EAX,nonce)
+    decrypted_message = cipher.decrypt_and_verify(client_message,tag)
+    #return
+    return decrypted_message
 
 
 # Encrypt a message using the session key
 def encrypt_message(message, session_key):
-    # TODO: Implement this function
-    pass
+    #create cipher using session key
+    cipher = AES.new(session_key)
+    #encrypt message using cipher
+    message_encrypted = cipher.encrypt(client_message)
+    #return
+    return message_encrypted
 
 
 # Receive 1024 bytes from the client
@@ -107,10 +114,16 @@ def main():
                 ciphertext_message = receive_message(connection)
 
                 # TODO: Decrypt message from client
+                plaintext_message = decrypt_message(ciphertext_message)
 
                 # TODO: Split response from user into the username and password
+                split_message = plaintext_message.split()
+                user = split_message[0]
+                password = split_message[1]
 
                 # TODO: Encrypt response to client
+                plaintext_response = verify_hash(user,password)
+                ciphertext_response = encrypt_message(plaintext_response)
 
                 # Send encrypted response
                 send_message(connection, ciphertext_response)
