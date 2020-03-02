@@ -16,6 +16,7 @@
 
 import socket
 import os
+import pickle
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
@@ -53,23 +54,24 @@ def encrypt_handshake(session_key):
 # Encrypts the message using AES. Same as server function
 def encrypt_message(message, session_key):
     #create cipher using session key
-    cipher = AES.new(session_key)
+    cipher = AES.new(session_key,AES.MODE_EAX)
+    nonce = cipher.nonce
     #encrypt message using cipher
-    message_encrypted = cipher.encrypt(message)
+    message = message.encode('utf-8')
+    message_encrypted, tag = cipher.encrypt_and_digest(message)
     #return
-    return message_encrypted
+    return message_encrypted, nonce
     
 
 
 # Decrypts the message using AES. Same as server function
-def decrypt_message(message, session_key):
+def decrypt_message(message, session_key, nonce):
     #create cipher using session_key
-    cipher = AES.new(session_key, AES.MODE_EAX,nonce)
-    decrypted_message = cipher.decrypt_and_verify(message,tag)
+    cipher = AES.new(session_key,AES.MODE_EAX,nonce)
+    decrypted_message = cipher.decrypt(message)
+    decrypted_message = decrypted_message.decode('utf-8')
     #return
     return decrypted_message
-
-
 
 # Sends a message over TCP
 def send_message(sock, message):
@@ -113,12 +115,17 @@ def main():
             exit(0)
 
         # TODO: Encrypt message and send to server
-        encrypted_message = encrypt_message(message,key)
-        send_message(sock,encrypted_message)
+        encrypted_message, nonce = encrypt_message(message,key)
+        mes_nonce = [encrypted_message,nonce]
+        pickled = pickle.dumps(mes_nonce)
+        
+        send_message(sock,pickled)
 
         # TODO: Receive and decrypt response from server
-        encrypted_message = receive_message(sock)
-        decrypted_message = decrypt_message(encrypted_message)
+        pickled = receive_message(sock)
+        mes_nonce = pickle.loads(pickled)
+
+        decrypted_message = decrypt_message(mes_nonce[0],key,mes_nonce[1])
         #print message from server
         print(decrypted_message)
         

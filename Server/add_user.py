@@ -16,7 +16,7 @@ password = input("Enter a password: ")
 
 # TODO: Create a salt and hash the password
 salt = uuid.uuid4().hex
-hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
+hashed_password = hashlib.sha512(salt.encode('utf-8') + password.encode('utf-8')).hexdigest()
 
 try:
     reading = open("passfile.txt", 'r')

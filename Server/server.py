@@ -11,6 +11,12 @@
 """
 
 import socket
+import os
+import pickle
+import hashlib, uuid
+
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
 
 host = "localhost"
 port = 10001
@@ -23,27 +29,38 @@ def pad_message(message):
 
 # Write a function that decrypts a message using the server's private key
 def decrypt_key(session_key):
-    # TODO: Implement this function
-    pass
-
-
-# Write a function that decrypts a message using the session key
-def decrypt_message(client_message, session_key):
-    #create cipher using session_key
-    cipher = AES.new(session_key, AES.MODE_EAX,nonce)
-    decrypted_message = cipher.decrypt_and_verify(client_message,tag)
+    #Get private key from directory file
+    private_key = RSA.import_key(open("private_key.pem").read())
+    #create cipher using public key
+    cipher = PKCS1_OAEP.new(private_key)
+    #encrypt session key with cipher
+    session_key_decrypted = cipher.decrypt(session_key)
     #return
-    return decrypted_message
+    return session_key_decrypted
+    
 
 
-# Encrypt a message using the session key
+# Encrypts the message using AES. Same as server function
 def encrypt_message(message, session_key):
     #create cipher using session key
-    cipher = AES.new(session_key)
+    cipher = AES.new(session_key,AES.MODE_EAX)
+    nonce = cipher.nonce
     #encrypt message using cipher
-    message_encrypted = cipher.encrypt(client_message)
+    message = message.encode('utf-8')
+    message_encrypted, tag = cipher.encrypt_and_digest(message)
     #return
-    return message_encrypted
+    return message_encrypted, nonce
+    
+
+
+# Decrypts the message using AES. Same as server function
+def decrypt_message(message, session_key, nonce):
+    #create cipher using session_key
+    cipher = AES.new(session_key,AES.MODE_EAX,nonce)
+    decrypted_message = cipher.decrypt(message)
+    decrypted_message = decrypted_message.decode('utf-8')
+    #return
+    return decrypted_message
 
 
 # Receive 1024 bytes from the client
@@ -71,7 +88,8 @@ def verify_hash(user, password):
             line = line.split("\t")
             if line[0] == user:
                 # TODO: Generate the hashed password
-                # hashed_password =
+                salt = line[1]
+                hashed_password = hashlib.sha512(password.encode('utf-8') + salt.encode('utf-8')).hexdigest()
                 return hashed_password == line[2]
         reader.close()
     except FileNotFoundError:
@@ -103,25 +121,34 @@ def main():
                 send_message(connection, "okay")
 
                 # Decrypt key from client
-                plaintext_key = decrypt_key(encrypted_key)
+                session_key = decrypt_key(encrypted_key)
 
                 # Receive encrypted message from client
-                ciphertext_message = receive_message(connection)
+                pickled = receive_message(connection)
+                
+                mes_nonce = pickle.loads(pickled)
 
                 # TODO: Decrypt message from client
-                plaintext_message = decrypt_message(ciphertext_message)
-
+                decrypted_message = decrypt_message(mes_nonce[0],session_key,mes_nonce[1])
+                
                 # TODO: Split response from user into the username and password
-                split_message = plaintext_message.split()
+                split_message = decrypted_message.split()
                 user = split_message[0]
                 password = split_message[1]
-
+                
                 # TODO: Encrypt response to client
-                plaintext_response = verify_hash(user,password)
-                ciphertext_response = encrypt_message(plaintext_response)
+                verify = verify_hash(user,password)
+                if(verify):
+                    plaintext_response = "User successfully authenticated!"
+                else:
+                    plaintext_response = "Password or username incorrect!"
+                #encrypt response
+                ciphertext_response, nonce = encrypt_message(plaintext_response,session_key)
+                mes_nonce = [ciphertext_response,nonce]
+                pickled = pickle.dumps(mes_nonce)
 
                 # Send encrypted response
-                send_message(connection, ciphertext_response)
+                send_message(connection, pickled)
             finally:
                 # Clean up the connection
                 connection.close()
